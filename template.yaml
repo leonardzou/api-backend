@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: SAM template to launch an API that serves data from a connected data source
+
+Resources:
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Ref AWS::StackName
+      StageName: dev
+  
+  GetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: python3.8
+      Policies: AWSLambdaDynamoDBExecutionRole
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Method: get
+            Path: /helloworld
+            RestApiId: !Ref Api
+      InlineCode: |
+        import json
+        import boto3
+        def handler(event, context):
+          return {
+            'statusCode': 200,
+            'body': json.dumps('Hello from Lambda!')
+          }
