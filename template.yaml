@@ -104,6 +104,11 @@ Resources:
               'statusCode': 400,
               'body': 'Bad request: Malformed JSON object'
             }
+          if 'id' not in item:
+            return {
+              'statusCode': 400,
+              'body': 'Bad request: Item must include "id" primary key'
+            }
           ddbTableName = os.environ.get('TABLE_NAME')
           dynamodb = boto3.resource('dynamodb')
           table = dynamodb.Table(ddbTableName)
