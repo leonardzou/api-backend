@@ -3,12 +3,15 @@ Transform: AWS::Serverless-2016-10-31
 Description: SAM template to launch an API that serves data from a connected data source
 
 Resources:
+  DynamoDbTable:
+    Type: AWS::Serverless::SimpleTable
+
   Api:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Ref AWS::StackName
       StageName: dev
-  
+
   GetFunction:
     Type: AWS::Serverless::Function
     Properties:
