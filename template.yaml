@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: SAM template to launch an API that serves data from a connected data source
 
+Parameters:
+  StageName:
+    Type: String
+    Default: dev
+
 Globals:
   Function:
     Runtime: python3.8
@@ -19,30 +24,51 @@ Resources:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Ref AWS::StackName
-      StageName: dev
+      StageName: !Ref StageName
 
   GetFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Policies: AWSLambdaDynamoDBExecutionRole
+      Policies: AmazonDynamoDBReadOnlyAccess
       Events:
         Api:
           Type: Api
           Properties:
             Method: get
-            Path: /helloworld
+            Path: /id/{id}
             RestApiId: !Ref Api
       InlineCode: |
         import json
         import boto3
         import os
+        from botocore.exceptions import ClientError
 
         def handler(event, context):
           ddbTableName = os.environ.get('TABLE_NAME')
-          print("Table name is " + ddbTableName)
+          itemKey = event['pathParameters']['id']
           dynamodb = boto3.resource('dynamodb')
           table = dynamodb.Table(ddbTableName)
-          return {
-            'statusCode': 200,
-            'body': json.dumps('Hello from Lambda!')
-          }
+          
+          try:
+            response = table.get_item(Key={'id': itemKey})
+          except ClientError as e:
+            print(e.response['Error']['Message'])
+            return {
+              'statusCode': 500,
+              'body': 'ClientError: Please check logs for specific error message'
+            }
+          if 'Item' in response:
+            return {
+              'statusCode': 200,
+              'body': json.dumps(response['Item'])
+            }
+          else:
+            return {
+              'statusCode': 404,
+              'body': "404 Item not found in table"
+            }
+
+Outputs:
+  ApiEndpoint:
+    Description: URL to use to invoke API
+    Value: !Sub 'https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${StageName}'
