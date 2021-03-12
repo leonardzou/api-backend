@@ -34,7 +34,7 @@ Resources:
         Api:
           Type: Api
           Properties:
-            Method: get
+            Method: GET
             Path: /id/{id}
             RestApiId: !Ref Api
       InlineCode: |
@@ -48,7 +48,7 @@ Resources:
           itemKey = event['pathParameters']['id']
           dynamodb = boto3.resource('dynamodb')
           table = dynamodb.Table(ddbTableName)
-          
+
           try:
             response = table.get_item(Key={'id': itemKey})
           except ClientError as e:
@@ -65,8 +65,64 @@ Resources:
           else:
             return {
               'statusCode': 404,
-              'body': "404 Item not found in table"
+              'body': "Item not found in table"
             }
+
+  PutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Policies:
+        - Version: '2012-10-17' 
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt DynamoDbTable.Arn
+      Events:
+        Api:
+          Type: Api
+          Properties:
+            Method: POST
+            Path: /
+            RestApiId: !Ref Api
+      InlineCode: |
+        import json
+        import boto3
+        import os
+        import sys
+
+        def handler(event, context):
+          if event['body'] is None:
+            return {
+              'statusCode': 400,
+              'body': 'Bad request: Request must include JSON object in POST body'
+            }
+          try:
+            item = json.loads(event['body'])
+          except:
+            return {
+              'statusCode': 400,
+              'body': 'Bad request: Malformed JSON object'
+            }
+          ddbTableName = os.environ.get('TABLE_NAME')
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table(ddbTableName)
+
+          try:
+            response = table.put_item(
+              Item=item
+            )
+          except:
+            e = sys.exc_info()[0]
+            print(e)
+            return {
+              'statusCode': 500,
+              'body': 'ClientError: Please check logs for specific error message'
+            }
+
+          return {
+            'statusCode': 202
+          }
 
 Outputs:
   ApiEndpoint:
