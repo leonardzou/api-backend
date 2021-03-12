@@ -2,6 +2,15 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: SAM template to launch an API that serves data from a connected data source
 
+Globals:
+  Function:
+    Runtime: python3.8
+    Handler: index.handler
+    Timeout: 30
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref DynamoDbTable
+
 Resources:
   DynamoDbTable:
     Type: AWS::Serverless::SimpleTable
@@ -15,8 +24,6 @@ Resources:
   GetFunction:
     Type: AWS::Serverless::Function
     Properties:
-      Handler: index.handler
-      Runtime: python3.8
       Policies: AWSLambdaDynamoDBExecutionRole
       Events:
         Api:
@@ -28,7 +35,13 @@ Resources:
       InlineCode: |
         import json
         import boto3
+        import os
+
         def handler(event, context):
+          ddbTableName = os.environ.get('TABLE_NAME')
+          print("Table name is " + ddbTableName)
+          dynamodb = boto3.resource('dynamodb')
+          table = dynamodb.Table(ddbTableName)
           return {
             'statusCode': 200,
             'body': json.dumps('Hello from Lambda!')
