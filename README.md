@@ -19,6 +19,8 @@ e.g. https://l2kubgumhl.execute-api.ap-southeast-2.amazonaws.com/dev/
 
 ## Get Item by id
 
+Note: Before you can successfully retrieve items from the DynamoDB table you must first create some items using the instructions above
+
 ```
 URL: {ApiEndpoint}/id/{id}
 Method: GET
